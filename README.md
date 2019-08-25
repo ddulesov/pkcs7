@@ -1,4 +1,6 @@
 ## CMS (Cryptographic Message Syntax) Golang library with  GOST cryptography support
+[![Build Status](https://travis-ci.com/ddulesov/pkcs7.svg?branch=master)](https://travis-ci.com/ddulesov/pkcs7)
+
   designed primarily for [Rutoken](https://www.rutoken.ru/products/all/rutoken-ecp/)  authentication 
   [Rutoken Plugin Doc](https://dev.rutoken.ru/display/PUB/RutokenPluginDoc)
 
