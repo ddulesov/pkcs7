@@ -22,19 +22,18 @@ import (
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"errors"
-
-	//"log"
 	"math/big"
 	"time"
 )
 
 var (
-	//ErrUnsupportedContentType = errors.New("pkcs7: cannot parse data: unimplemented content type")
 	ErrUnsupportedAlgorithm = errors.New("x509: unsupported algorithm")
 	ErrSignature            = errors.New("cms: signature verify failed")
 	ErrSigningTime          = errors.New("cms: signing time failed")
 )
 
+// CMS represent Cryptographic Message Syntax (CMS) with Signed-data Content Type
+// RFC5652
 type CMS struct {
 	Content      []byte
 	Certificates []*Certificate
@@ -47,6 +46,7 @@ func isCertMatchForIssuerAndSerial(cert *Certificate, ias issuerAndSerial) bool 
 	return cert.TBSCertificate.SerialNumber.Cmp(ias.SerialNumber) == 0 && bytes.Compare(cert.TBSCertificate.Issuer.FullBytes, ias.IssuerName.FullBytes) == 0
 }
 
+// find certificate by Issuer byte sequese and Serial number
 func getCertFromCertsByIssuerAndSerial(certs []*Certificate, ias issuerAndSerial) *Certificate {
 	for _, cert := range certs {
 		if isCertMatchForIssuerAndSerial(cert, ias) {
@@ -56,6 +56,7 @@ func getCertFromCertsByIssuerAndSerial(certs []*Certificate, ias issuerAndSerial
 	return nil
 }
 
+// Parse parses a CMS  from the given asn.1 DER data.
 func ParseCMS(data []byte) (p7 *CMS, err error) {
 	var info contentInfo
 
@@ -76,6 +77,7 @@ func ParseCMS(data []byte) (p7 *CMS, err error) {
 	return nil, asn1.SyntaxError{Msg: "Unsupported CMS Content Type"}
 }
 
+// CertificateSerial returns  Signer first Certificate serial number.
 func (cms *CMS) CertificateSerial() *big.Int {
 	if len(cms.Certificates) == 0 {
 		return nil
@@ -84,6 +86,11 @@ func (cms *CMS) CertificateSerial() *big.Int {
 	return cms.Certificates[0].TBSCertificate.SerialNumber
 }
 
+// Verify CMS validity.
+// check equality CMS content and provided value @content
+// check signing time in the range between notBefore-notAfter
+// check content digest
+// check content signature over provided signer certificates
 func (cms *CMS) Verify(content []byte, notBefore, notAfter time.Time) error {
 	var err error
 	if len(cms.Signers) != 1 {
@@ -155,7 +162,7 @@ func (cms *CMS) Verify(content []byte, notBefore, notAfter time.Time) error {
 			return ErrSignature
 		}
 
-		signer.AuthenticatedAttributes.Raw[0] = 0x31 //!hack. replace implicit tag  with SET(31)
+		signer.AuthenticatedAttributes.Raw[0] = ( asn1.TagSet | 0x20 ) //!hack. replace implicit tag  with SET(17)+Compound(32)
 
 		//HACK!!!
 		//openssl use digestAlgorithm  hash functions in all cases
@@ -195,6 +202,7 @@ func (cms *CMS) Verify(content []byte, notBefore, notAfter time.Time) error {
 	return nil
 }
 
+// VerifyCertificates validate CMS signer certificates over proived Certificate Authority
 func (cms *CMS) VerifyCertificates(ca []*Certificate) error {
 	var err error
 

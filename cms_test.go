@@ -1,7 +1,8 @@
-package pkcs7
+package pkcs7_test
 
 import (
 	"encoding/pem"
+	"github.com/ddulesov/pkcs7"
 	"testing"
 	"time"
 )
@@ -285,25 +286,27 @@ func Pem2Der(t *testing.T, pemData string, pemType string) []byte {
 
 func TestCMS(t *testing.T) {
 
-	caAlien, err := ParseCertificate(Pem2Der(t, testAlienCA, "CERTIFICATE"))
+	caAlien, err := pkcs7.ParseCertificate(Pem2Der(t, testAlienCA, "CERTIFICATE"))
 	if err != nil {
 		t.FailNow()
 	}
+	var calist []*pkcs7.Certificate
 
 	for _, item := range testSet {
-		ca, err := ParseCertificate(Pem2Der(t, item.Ca, "CERTIFICATE"))
+		ca, err := pkcs7.ParseCertificate(Pem2Der(t, item.Ca, "CERTIFICATE"))
 		if err != nil {
 			t.FailNow()
 		}
+		calist = append(calist, ca)
 
-		cms, err := ParseCMS(Pem2Der(t, item.Cms, "CMS"))
+		cms, err := pkcs7.ParseCMS(Pem2Der(t, item.Cms, "CMS"))
 		if err != nil {
 			t.FailNow()
 		}
 
 		t.Run(item.Name, func(t *testing.T) {
 
-			err = cms.VerifyCertificates([]*Certificate{ca})
+			err = cms.VerifyCertificates([]*pkcs7.Certificate{ca})
 			if err != nil {
 				t.FailNow()
 			}
@@ -317,25 +320,38 @@ func TestCMS(t *testing.T) {
 		})
 		//errors
 		t.Run(item.Name+"_CertificateError", func(t *testing.T) {
-			err = cms.VerifyCertificates([]*Certificate{caAlien})
-			if err != ErrSignature {
+			err = cms.VerifyCertificates([]*pkcs7.Certificate{caAlien})
+			if err != pkcs7.ErrSignature {
 				t.FailNow()
 			}
 		})
 
 		t.Run(item.Name+"_SigningTimeError", func(t *testing.T) {
 			err = cms.Verify(item.Content, item.NotAfter, item.NotAfter)
-			if err != ErrSigningTime {
+			if err != pkcs7.ErrSigningTime {
 				t.FailNow()
 			}
 		})
 
 		t.Run(item.Name+"_ContentError", func(t *testing.T) {
 			err = cms.Verify([]byte{10}, item.NotBefore, item.NotAfter)
-			if err != ErrSignature {
+			if err != pkcs7.ErrSignature {
 				t.FailNow()
 			}
 		})
 	}
 
+	for _, item := range testSet {
+		t.Run(item.Name+"_ValidateCAList", func(t *testing.T) {
+			cms, err := pkcs7.ParseCMS(Pem2Der(t, item.Cms, "CMS"))
+			if err != nil {
+				t.FailNow()
+			}
+			err = cms.VerifyCertificates(calist)
+			if err != nil {
+				t.FailNow()
+			}
+
+		})
+	}
 }

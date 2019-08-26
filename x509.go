@@ -54,19 +54,24 @@ func parsePublicKey(algo PublicKeyAlgorithm, keyData *publicKeyInfo) (interface{
 }
 */
 
+// some GOST cryptographic function accept LE (little endian) Big integer as bytes array.
+// golang big.Int internal representation is BE (big endian)
+// Reverse convert LE to BE and vice versa
 func Reverse(d []byte) {
 	for i, j := 0, len(d)-1; i < j; i, j = i+1, j-1 {
 		d[i], d[j] = d[j], d[i]
 	}
 }
 
+// RSA public key PKCS#1 representation
 type pkcs1PublicKey struct {
 	N *big.Int
 	E int
 }
 
-//ToDo create and store PublicKey in certificate
-//ToDo concern algo parameters for GOST cryptography . adjust PublicKey ParamSet according to them
+// varifies signature over provided public key and digest/signature algorithm pair
+// ToDo create and store PublicKey in certificate during parse state
+// ToDo concern algorithm parameters for GOST cryptography . adjust PublicKey ParamSet according to them
 func checkSignature(algo *SignatureAlgorithm, signed, signature []byte, pubKey []byte) error {
 
 	if algo == nil || !algo.hash.Actual() || !algo.pubKeyAlgo.Actual() {
@@ -162,6 +167,7 @@ func checkSignature(algo *SignatureAlgorithm, signed, signature []byte, pubKey [
 
 }
 
+// Verifies signature over certificate public key
 func (c *Certificate) CheckSignature(algo *SignatureAlgorithm, signed, signature []byte) error {
 
 	var err error
@@ -187,6 +193,8 @@ func (c *Certificate) CheckSignature(algo *SignatureAlgorithm, signed, signature
 	return checkSignature(algo, signed, signature, pubKey)
 }
 
+// CheckSignatureFrom verifies that the signature on c is a valid signature
+// from parent.
 func (c *Certificate) CheckSignatureFrom(parent *Certificate) error {
 
 	if parent == nil {
@@ -222,6 +230,8 @@ func (c *Certificate) CheckSignatureFrom(parent *Certificate) error {
 	return parent.CheckSignature(algo, c.TBSCertificate.Raw, c.SignatureValue.RightAlign())
 }
 
+// asn.1 x509Certificate::tbsCertificate structure
+// RFC5280
 type tbsCertificate struct {
 	Raw                asn1.RawContent
 	Version            int `asn1:"optional,explicit,default:0,tag:0"`
@@ -244,17 +254,22 @@ type GOSTCryptoProParameters struct {
 	ParamSet []asn1.ObjectIdentifier
 }
 
+// asn.1 Certificate PublicKey structure
+// RFC5280
 type publicKeyInfo struct {
 	//Raw       asn1.RawContent
 	Algorithm pkix.AlgorithmIdentifier
 	PublicKey asn1.BitString
 }
 
+// asn.1 CMS Attribute
+// RFC5652
 type attribute struct {
 	Type  asn1.ObjectIdentifier
 	Value asn1.RawValue `asn1:"set"`
 }
 
+// asn.1 Signature issuer
 type issuerAndSerial struct {
 	IssuerName   asn1.RawValue
 	SerialNumber *big.Int
@@ -264,17 +279,19 @@ type signedAttrs struct {
 	Raw asn1.RawContent
 }
 
+// asn.1 CMS SignerInfo struct
+// RFC5652
 type signerInfo struct {
-	Version               int `asn1:"default:1"`
-	IssuerAndSerialNumber issuerAndSerial
-	DigestAlgorithm       pkix.AlgorithmIdentifier
-	//AuthenticatedAttributes   []attribute `asn1:"optional,tag:0"`
+	Version                   int `asn1:"default:1"`
+	IssuerAndSerialNumber     issuerAndSerial
+	DigestAlgorithm           pkix.AlgorithmIdentifier
 	AuthenticatedAttributes   signedAttrs `asn1:"optional,tag:0"`
 	DigestEncryptionAlgorithm pkix.AlgorithmIdentifier
 	EncryptedDigest           []byte
 	UnauthenticatedAttributes []attribute `asn1:"optional,tag:1"`
 }
 
+// Parse parses a single certificate from the given asn.1 DER data.
 func (raw rawCertificates) Parse() ([]*Certificate, error) {
 	var v []*Certificate
 
@@ -299,7 +316,6 @@ func (raw rawCertificates) Parse() ([]*Certificate, error) {
 		v = append(v, cert)
 	}
 	return v, nil
-
 	//return x509.ParseCertificates(val.Bytes)
 }
 
@@ -311,14 +327,21 @@ type SignedData struct {
 }
 */
 
+// asn.1 CMS::SignerInfo
+// RFC5652
 type Attribute struct {
 	Type  asn1.ObjectIdentifier
 	Value interface{}
 }
+
+/*
 type SignerInfoConfig struct {
 	ExtraSignedAttributes []Attribute
 }
+*/
 
+// asn.1 CMS representation
+// RFC5652
 type contentInfo struct {
 	ContentType asn1.ObjectIdentifier
 	Content     asn1.RawValue `asn1:"explicit,optional,tag:0"`
@@ -328,14 +351,13 @@ func parseSignedData(data []byte) (*CMS, error) {
 	var sd signedData
 	asn1.Unmarshal(data, &sd)
 
-	/* NEWVER */
+	
 	certs, err := sd.Certificates.Parse()
 	if err != nil {
 		return nil, err
 	}
 
 	// fmt.Printf("--> Signed Data Version %d\n", sd.Version)
-
 	var compound asn1.RawValue
 	var content unsignedData
 
