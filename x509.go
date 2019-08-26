@@ -351,7 +351,6 @@ func parseSignedData(data []byte) (*CMS, error) {
 	var sd signedData
 	asn1.Unmarshal(data, &sd)
 
-	
 	certs, err := sd.Certificates.Parse()
 	if err != nil {
 		return nil, err

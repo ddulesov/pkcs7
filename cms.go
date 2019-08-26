@@ -162,7 +162,7 @@ func (cms *CMS) Verify(content []byte, notBefore, notAfter time.Time) error {
 			return ErrSignature
 		}
 
-		signer.AuthenticatedAttributes.Raw[0] = ( asn1.TagSet | 0x20 ) //!hack. replace implicit tag  with SET(17)+Compound(32)
+		signer.AuthenticatedAttributes.Raw[0] = (asn1.TagSet | 0x20) //!hack. replace implicit tag  with SET(17)+Compound(32)
 
 		//HACK!!!
 		//openssl use digestAlgorithm  hash functions in all cases
@@ -171,18 +171,7 @@ func (cms *CMS) Verify(content []byte, notBefore, notAfter time.Time) error {
 		algo := GetSignatureAlgorithmForOid(signer.DigestEncryptionAlgorithm.Algorithm)
 
 		if algo == nil {
-			if signer.DigestEncryptionAlgorithm.Algorithm.Equal(oidPublicKeyRSA) {
-				for _, item := range signatureAlgorithmDetails {
-					if item.hash == hashType && item.pubKeyAlgo == RSA {
-						algo = &item
-						break
-					}
-				}
-			}
-
-			if algo == nil {
-				return ErrUnsupportedAlgorithm
-			}
+			return ErrUnsupportedAlgorithm
 		}
 
 		if algo.hash == UnknownHashFunction {

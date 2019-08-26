@@ -186,11 +186,6 @@ func (algo *SignatureAlgorithm) Family() CryptoFamily {
 
 var signatureAlgorithmDetails = []SignatureAlgorithm{
 
-	{"SHA1-RSA", oidSignatureSHA1WithRSA, RSA, SHA1},
-	{"SHA1-RSA", oidISOSignatureSHA1WithRSA, RSA, SHA1},
-	{"SHA256-RSA", oidSignatureSHA256WithRSA, RSA, SHA256},
-	{"SHA384-RSA", oidSignatureSHA384WithRSA, RSA, SHA384},
-	{"SHA512-RSA", oidSignatureSHA512WithRSA, RSA, SHA512},
 	/*
 		{"SHA256-RSAPSS", oidSignatureRSAPSS, RSAPSS, SHA256},
 		{"SHA384-RSAPSS", oidSignatureRSAPSS, RSAPSS, SHA384},
@@ -206,12 +201,16 @@ var signatureAlgorithmDetails = []SignatureAlgorithm{
 	//GOST-R  https://www.cryptopro.ru/sites/default/files/products/tls/tk26iok.pdf
 	{"GOST-3410_2001", oidSignatureGOSTR3410_2001, GOSTR3410_2001, UnknownHashFunction},
 	{"GOST-3410_2001-3411_94", oidSignatureGOSTR3410_2001_GOSTR3411_94, GOSTR3410_2001, GOSTR3411_94},
-
 	{"GOST-3410_12_256", oidSignatureGOSTR3410_2012_256, GOSTR3410_2012_256, UnknownHashFunction},
 	{"GOST-3410_12_256-3411_12", oidSignatureGOSTR3410_2012_256_GOSTR3411_12, GOSTR3410_2012_256, GOSTR3411_2012_256},
-
 	{"GOST-3410_12_512", oidSignatureGOSTR3410_2012_512, GOSTR3410_2012_512, UnknownHashFunction},
 	{"GOST-3410_12_512-3411_12", oidSignatureGOSTR3410_2012_512_GOSTR3411_12, GOSTR3410_2012_512, GOSTR3411_2012_512},
+	{"RSA", oidPublicKeyRSA, RSA, UnknownHashFunction},
+	{"SHA1-RSA", oidSignatureSHA1WithRSA, RSA, SHA1},
+	{"SHA1-RSA", oidISOSignatureSHA1WithRSA, RSA, SHA1},
+	{"SHA256-RSA", oidSignatureSHA256WithRSA, RSA, SHA256},
+	{"SHA384-RSA", oidSignatureSHA384WithRSA, RSA, SHA384},
+	{"SHA512-RSA", oidSignatureSHA512WithRSA, RSA, SHA512},
 }
 
 func GetSignatureAlgorithmForOid(oid asn1.ObjectIdentifier) *SignatureAlgorithm {
